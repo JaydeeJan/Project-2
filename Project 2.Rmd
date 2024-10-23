@@ -1,0 +1,181 @@
+---
+title: "Project 2"
+author: "Jayden Jiang"
+date: "2024-10-17"
+output: html_document
+---
+
+## Library 
+```{r}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+## Introduction
+
+#### For this project we are choosing three "wide" datasets, practice to tidy and tranform each datasets, as well as analyzing the works.
+
+## Load Dataset #1
+```{r}
+childcare_raw <- read.csv("https://raw.githubusercontent.com/JaydeeJan/Project-2/refs/heads/main/Childcare_Need___Supply__All.csv")
+head(childcare_raw, 10)
+tail(childcare_raw)
+```
+## Tidy and transform the Data
+```{r}
+summary(childcare_raw) # Checking for missing value and property
+```
+```{r}
+# convert relevant columns to numeric 
+numeric_cols <- c("Childcare.Subsidized", "Private.Care.Estimate", "Estimated.Children.Receiving.Childcare", "Estimate.of.Unserved", "Percent.Need.Met")
+
+childcare_raw[numeric_cols] <- lapply(childcare_raw[numeric_cols], as.numeric)
+
+data_cleaned <- childcare_raw %>% drop_na() # remove rows with missing data (N/A).
+str(data_cleaned)
+
+#rename the cols 
+head(data_cleaned, 10)
+tail(data_cleaned)
+```
+```{r}
+received_chaildcare <- data_cleaned %>% select(Geographic.ID, Age.Group, State.Median.Income.Bracket, Estimated.Children.Receiving.Childcare)
+
+receive_care_cleaned <- received_chaildcare %>% filter(Estimated.Children.Receiving.Childcare != 0) # removing rows with value in 0. 
+
+head(receive_care_cleaned, 20)
+
+percent_met <- data_cleaned %>% select(Geographic.ID, Age.Group, State.Median.Income.Bracket, Percent.Need.Met)
+
+percent_met_cleaned <- percent_met %>% filter(Percent.Need.Met != 0) 
+
+head(percent_met_cleaned, 20)
+```
+## Analyze Data
+
+```{r}
+# summarize the average percentage of childcare needs met by state median income bracket.
+percent_met_analysis <- percent_met_cleaned %>%
+  group_by(State.Median.Income.Bracket) %>%
+  summarise(Average_Need_Met = mean(Percent.Need.Met))
+
+ggplot(percent_met_analysis, aes(x = reorder(State.Median.Income.Bracket, Average_Need_Met), y = Average_Need_Met)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Average Percentage of Childcare Needs Met by Income Bracket", x = "Income Bracket", y = "Percent Need Met") +
+  coord_flip() +
+  theme_minimal()
+```
+
+## Conclusion for the first dataset
+
+#### For families earning less or equal to 60% of State Median Income (SMI), thye have the highest percentage of childcare needs met compared to others. The families with the lowest incomes may benefit the most from government subsideies or other support programs aiming at childcare need. However, for families whose SMI between 60% to 85% received least childcare support. while families earning greater than 85% SMI received second highest percentage of childcare needs. 
+
+## Load Dataset #2
+```{r}
+hiv_raw <- read.csv("https://raw.githubusercontent.com/JaydeeJan/Project-2/refs/heads/main/HIV_AIDS_Diagnoses_by_Neighborhood__Sex__and_Race_Ethnicity_20241020.csv")
+head(hiv_raw, 10)
+```
+## Tidy and transforming data
+```{r}
+summary(hiv_raw)
+
+numeric_cols <- c("TOTAL.NUMBER.OF.HIV.DIAGNOSES", "HIV.DIAGNOSES.PER.100.000.POPULATION", "TOTAL.NUMBER.OF.CONCURRENT.HIV.AIDS.DIAGNOSES", "PROPORTION.OF.CONCURRENT.HIV.AIDS.DIAGNOSES.AMONG.ALL.HIV.DIAGNOSES", "TOTAL.NUMBER.OF.AIDS.DIAGNOSES", "AIDS.DIAGNOSES.PER.100.000.POPULATION")
+  
+hiv_raw[numeric_cols] <- lapply(hiv_raw[numeric_cols], as.numeric)
+
+hiv_cleaned <- hiv_raw %>% drop_na() # remove rows with missing data (N/A).
+str(hiv_cleaned)
+```
+```{r}
+# Group by year, sex, and race/ethnicity for summary
+hiv_trans <- hiv_cleaned %>% 
+  group_by(YEAR, SEX, RACE.ETHNICITY) %>%
+  summarise(
+    Total_HIV_Diagnoses = sum(TOTAL.NUMBER.OF.HIV.DIAGNOSES),
+    .groups = 'drop'
+  )
+
+head(hiv_trans, 20)
+```
+## Data Visualization
+```{r}
+# HIV diagnoses over time by sex
+ggplot(hiv_trans, aes(x = YEAR, y = Total_HIV_Diagnoses, color = SEX)) +
+  geom_line(size = 1) +
+  geom_point(size = 2, shape = 21, fill = "white") +
+  scale_color_brewer(palette = "Set1") +
+  labs(title = "Total HIV Diagnoses Over Time by Sex",
+       x = "Year", y = "Total HIV Diagnoses") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top")
+
+# HIV diagnoses over time by race/ethnicity
+ggplot(hiv_trans, aes(x = YEAR, y = Total_HIV_Diagnoses, color = RACE.ETHNICITY)) +
+  geom_line(size = 1) +
+  geom_point(size = 2, shape = 21, fill = "white") +
+  scale_color_brewer(palette = "Set1") +
+  labs(title = "Total HIV Diagnoses Over Time by Race/Ethnicity",
+       x = "Year", y = "Total HIV Diagnoses") +
+  theme_minimal()
+```
+
+## Conclusion for the second dataset
+
+#### HIV diagnoses have been consistently higher among males and with Black and Hispanic communities, though there has been a gradual decline over time. Disparities in diagnoses by race/ethnicity indicate a need for targeted interventions in these affected populations. 
+
+## Load Dataset #3
+```{r}
+population_raw <- read.csv("https://raw.githubusercontent.com/JaydeeJan/Project-2/refs/heads/main/world_population.csv")
+head(population_raw)
+```
+
+## Tidy and Transform Data
+```{r}
+# rename columns
+colnames(population_raw) <- c("Rank", "CCA3", "Country", "Capital", "Continent", "Population_2022", "Population_2015", "Population_2010", "Population_2000", "Population_1990", "Population_1980", "Population_1970", "Area_km2", "Density_per_km2", "Growth_Rate", "World_Pop_Percentage")
+
+population_cleaned <- population_raw
+
+colnames(population_cleaned) <- make.names(colnames(population_cleaned), unique = TRUE)
+
+str(population_cleaned)
+
+head(population_cleaned)
+```
+
+```{r}
+# select relevant columns and calculate population growth percentage since 2000
+population_long <- population_cleaned %>%
+  select(Country, Continent, Population_2000, Population_2022) %>%
+  mutate(Population_Growth_Percent = ((Population_2022 - Population_2000) / Population_2000) * 100)
+
+head(population_long, 10)
+
+# show top 10 countries by population growth percentage
+top_10_growth <- population_long %>%
+  arrange(desc(Population_Growth_Percent)) %>%
+  head(10)
+
+top_10_growth
+```
+## Analyze Data
+```{r}
+ggplot(top_10_growth, aes(x = reorder(Country, Population_Growth_Percent),
+                          y = Population_Growth_Percent, fill = Continent)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Top 10 Countries by Population Growth Since 2000",
+       x = "Country",
+       y = "Population Growth Percentage",
+       fill = "Continent") +
+  theme_minimal()
+```
+
+## Conclusion for the third dataset
+
+#### The population growth between 2000 and 2022 was predominantly increase in Africa and Asia. with Africa leading due to high fertility rates and a youthful population, while Asia's growth is largely migration-driven in economically expanding Middle Eastern nations like Jordan, Oman, and Qatar.
+
+
+
